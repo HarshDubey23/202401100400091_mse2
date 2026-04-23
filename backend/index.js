@@ -15,6 +15,14 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 
+app.get("/", (req, res) => {
+  res.json({ message: "Backend is running" });
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({ message: "API is running" });
+});
+
 /* ===========================
    MongoDB Connection
 =========================== */
@@ -29,6 +37,7 @@ mongoose.connect(process.env.MONGO_URI)
 // 👤 Student Schema
 const studentSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  course: { type: String, required: true },
   email: { type: String, unique: true, required: true },
   password: { type: String, required: true }
 }, { timestamps: true });
@@ -82,7 +91,11 @@ const auth = (req, res, next) => {
 /* 🔹 Register */
 app.post("/api/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, course, email, password } = req.body;
+
+    if (!name || !course || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
     const existing = await Student.findOne({ email });
     if (existing) {
@@ -91,7 +104,7 @@ app.post("/api/register", async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    const student = new Student({ name, email, password: hashed });
+    const student = new Student({ name, course, email, password: hashed });
     await student.save();
 
     res.status(201).json({ message: "Student Registered Successfully" });
@@ -105,6 +118,10 @@ app.post("/api/register", async (req, res) => {
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
 
     const student = await Student.findOne({ email });
     if (!student) {
@@ -138,6 +155,10 @@ app.post("/api/grievances", auth, async (req, res) => {
   try {
     const { title, description, category } = req.body;
 
+    if (!title || !description) {
+      return res.status(400).json({ message: "Title and description are required" });
+    }
+
     const grievance = new Grievance({
       studentId: req.user.id,
       title,
@@ -168,6 +189,22 @@ app.get("/api/grievances", auth, async (req, res) => {
 });
 
 /* 🔹 Get by ID */
+app.get("/api/grievances/search", auth, async (req, res) => {
+  try {
+    const { title = "" } = req.query;
+
+    const results = await Grievance.find({
+      studentId: req.user.id,
+      title: { $regex: title, $options: "i" }
+    });
+
+    res.json(results);
+
+  } catch (err) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 app.get("/api/grievances/:id", auth, async (req, res) => {
   try {
     const grievance = await Grievance.findOne({
@@ -209,10 +246,14 @@ app.put("/api/grievances/:id", auth, async (req, res) => {
 /* 🔹 Delete Grievance */
 app.delete("/api/grievances/:id", auth, async (req, res) => {
   try {
-    await Grievance.findOneAndDelete({
+    const deleted = await Grievance.findOneAndDelete({
       _id: req.params.id,
       studentId: req.user.id
     });
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Not Found" });
+    }
 
     res.json({ message: "Grievance Deleted" });
 
@@ -222,21 +263,6 @@ app.delete("/api/grievances/:id", auth, async (req, res) => {
 });
 
 /* 🔹 Search Grievance */
-app.get("/api/grievances/search", auth, async (req, res) => {
-  try {
-    const { title } = req.query;
-
-    const results = await Grievance.find({
-      studentId: req.user.id,
-      title: { $regex: title, $options: "i" }
-    });
-
-    res.json(results);
-
-  } catch (err) {
-    res.status(500).json({ message: "Server Error" });
-  }
-});
 
 /* ===========================
    SERVER START
