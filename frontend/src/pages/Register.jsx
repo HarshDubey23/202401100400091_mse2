@@ -20,11 +20,33 @@ export default function Register() {
     <div className="auth-container">
       <form className="card" onSubmit={submit}>
         <h2>Register</h2>
-        <input placeholder="Name" onChange={(e) => setForm({ ...form, name: e.target.value })}/>
-        <input placeholder="Course" onChange={(e) => setForm({ ...form, course: e.target.value })}/>
-        <input placeholder="Email" onChange={(e) => setForm({ ...form, email: e.target.value })}/>
-        <input type="password" placeholder="Password" onChange={(e) => setForm({ ...form, password: e.target.value })}/>
-        <button>Register</button>
+        <input
+          placeholder="Name"
+          value={form.name}
+          required
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+        />
+        <input
+          placeholder="Course"
+          value={form.course}
+          required
+          onChange={(e) => setForm({ ...form, course: e.target.value })}
+        />
+        <input
+          placeholder="Email"
+          type="email"
+          value={form.email}
+          required
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          required
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+        />
+        <button>Create Account</button>
       </form>
     </div>
   );

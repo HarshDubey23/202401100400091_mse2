@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL?.trim() || "https://mernstack-s3ai.onrender.com/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL?.trim() || "https://two02401100400091-mse2.onrender.com/api",
 });
 
 API.interceptors.request.use((req) => {

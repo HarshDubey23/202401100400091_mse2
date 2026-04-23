@@ -25,8 +25,20 @@ export default function Login() {
         animate={{ opacity: 1, y: 0 }}
       >
         <h2>Login</h2>
-        <input placeholder="Email" onChange={(e)=>setForm({...form,email:e.target.value})}/>
-        <input type="password" placeholder="Password" onChange={(e)=>setForm({...form,password:e.target.value})}/>
+        <input
+          placeholder="Email"
+          type="email"
+          value={form.email}
+          required
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          required
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+        />
         <button>Login</button>
         <p><Link to="/register">Create Account</Link></p>
       </motion.form>

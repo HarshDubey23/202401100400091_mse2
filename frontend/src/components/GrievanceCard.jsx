@@ -9,6 +9,7 @@ export default function GrievanceCard({ g, onDelete }) {
       <h3>{g.title}</h3>
       <p>{g.description}</p>
       <small>{g.category}</small>
+      <small>Status: {g.status}</small>
       <button onClick={() => onDelete(g._id)}>Delete</button>
     </motion.div>
   );
