@@ -7,6 +7,7 @@ const helmet = require("helmet");
 require("dotenv").config();
 
 const app = express();
+let isDatabaseReady = false;
 
 /* ===========================
    Middleware
@@ -29,6 +30,21 @@ app.get("/api/health", (req, res) => {
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.log("❌ DB Error:", err));
+
+mongoose.connection.on("connected", () => {
+  isDatabaseReady = true;
+  console.log("MongoDB Connected");
+});
+
+mongoose.connection.on("disconnected", () => {
+  isDatabaseReady = false;
+  console.log("DB Error: MongoDB disconnected");
+});
+
+mongoose.connection.on("error", (err) => {
+  isDatabaseReady = false;
+  console.log("DB Error:", err.message);
+});
 
 /* ===========================
    Schemas
@@ -84,6 +100,15 @@ const auth = (req, res, next) => {
   }
 };
 
+const ensureDatabase = (res) => {
+  if (!isDatabaseReady) {
+    res.status(503).json({ message: "Database not connected" });
+    return false;
+  }
+
+  return true;
+};
+
 /* ===========================
    AUTH ROUTES
 =========================== */
@@ -91,6 +116,8 @@ const auth = (req, res, next) => {
 /* 🔹 Register */
 app.post("/api/register", async (req, res) => {
   try {
+    if (!ensureDatabase(res)) return;
+
     const { name, course, email, password } = req.body;
 
     if (!name || !course || !email || !password) {
@@ -117,6 +144,8 @@ app.post("/api/register", async (req, res) => {
 /* 🔹 Login */
 app.post("/api/login", async (req, res) => {
   try {
+    if (!ensureDatabase(res)) return;
+
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -142,6 +171,7 @@ app.post("/api/login", async (req, res) => {
     res.json({ token, message: "Login Successful" });
 
   } catch (err) {
+    console.log("Login Error:", err.message);
     res.status(500).json({ message: "Server Error" });
   }
 });
@@ -153,6 +183,8 @@ app.post("/api/login", async (req, res) => {
 /* 🔹 Submit Grievance */
 app.post("/api/grievances", auth, async (req, res) => {
   try {
+    if (!ensureDatabase(res)) return;
+
     const { title, description, category } = req.body;
 
     if (!title || !description) {
@@ -171,6 +203,7 @@ app.post("/api/grievances", auth, async (req, res) => {
     res.status(201).json({ message: "Grievance Submitted", grievance });
 
   } catch (err) {
+    console.log("Create Grievance Error:", err.message);
     res.status(500).json({ message: "Server Error" });
   }
 });
@@ -178,12 +211,15 @@ app.post("/api/grievances", auth, async (req, res) => {
 /* 🔹 Get All Grievances */
 app.get("/api/grievances", auth, async (req, res) => {
   try {
+    if (!ensureDatabase(res)) return;
+
     const grievances = await Grievance.find({ studentId: req.user.id })
       .sort({ date: -1 });
 
     res.json(grievances);
 
   } catch (err) {
+    console.log("List Grievance Error:", err.message);
     res.status(500).json({ message: "Server Error" });
   }
 });
@@ -191,6 +227,8 @@ app.get("/api/grievances", auth, async (req, res) => {
 /* 🔹 Get by ID */
 app.get("/api/grievances/search", auth, async (req, res) => {
   try {
+    if (!ensureDatabase(res)) return;
+
     const { title = "" } = req.query;
 
     const results = await Grievance.find({
@@ -201,12 +239,15 @@ app.get("/api/grievances/search", auth, async (req, res) => {
     res.json(results);
 
   } catch (err) {
+    console.log("Search Grievance Error:", err.message);
     res.status(500).json({ message: "Server Error" });
   }
 });
 
 app.get("/api/grievances/:id", auth, async (req, res) => {
   try {
+    if (!ensureDatabase(res)) return;
+
     const grievance = await Grievance.findOne({
       _id: req.params.id,
       studentId: req.user.id
@@ -219,6 +260,7 @@ app.get("/api/grievances/:id", auth, async (req, res) => {
     res.json(grievance);
 
   } catch (err) {
+    console.log("Get Grievance Error:", err.message);
     res.status(500).json({ message: "Server Error" });
   }
 });
@@ -226,6 +268,8 @@ app.get("/api/grievances/:id", auth, async (req, res) => {
 /* 🔹 Update Grievance */
 app.put("/api/grievances/:id", auth, async (req, res) => {
   try {
+    if (!ensureDatabase(res)) return;
+
     const updated = await Grievance.findOneAndUpdate(
       { _id: req.params.id, studentId: req.user.id },
       req.body,
@@ -239,6 +283,7 @@ app.put("/api/grievances/:id", auth, async (req, res) => {
     res.json({ message: "Grievance Updated", updated });
 
   } catch (err) {
+    console.log("Update Grievance Error:", err.message);
     res.status(500).json({ message: "Server Error" });
   }
 });
@@ -246,6 +291,8 @@ app.put("/api/grievances/:id", auth, async (req, res) => {
 /* 🔹 Delete Grievance */
 app.delete("/api/grievances/:id", auth, async (req, res) => {
   try {
+    if (!ensureDatabase(res)) return;
+
     const deleted = await Grievance.findOneAndDelete({
       _id: req.params.id,
       studentId: req.user.id
@@ -258,6 +305,7 @@ app.delete("/api/grievances/:id", auth, async (req, res) => {
     res.json({ message: "Grievance Deleted" });
 
   } catch (err) {
+    console.log("Delete Grievance Error:", err.message);
     res.status(500).json({ message: "Server Error" });
   }
 });
